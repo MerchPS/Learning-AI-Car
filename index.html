@@ -1,447 +1,796 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="id">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Three-lane Driving — Single File</title>
-<style>
-:root{--bg:#101217;--road:#2b2f36;--lane:#3a3f47;--line:#e6e6e6;--ui:#dfe6ee}
-*{box-sizing:border-box;font-family:Inter,Segoe UI,system-ui,Arial}
-html,body{height:100%;margin:0;background:linear-gradient(180deg,#07101a,#0f1720);color:var(--ui)}
-.wrap{height:100vh;display:flex;gap:16px;padding:18px}
-.game{flex:1;position:relative;border-radius:14px;overflow:hidden;background:var(--road);box-shadow:0 8px 30px rgba(2,6,23,.6);min-height:600px}
-canvas{display:block;width:100%;height:100%;background:#1a1d23}
-.hud{width:360px;display:flex;flex-direction:column;gap:12px}
-.panel{background:linear-gradient(180deg,rgba(255,255,255,.02),rgba(255,255,255,.01));padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,.04)}
-.title{font-weight:600;margin-bottom:6px}
-.controls{display:flex;gap:8px;flex-wrap:wrap}
-button{background:#111827;color:var(--ui);border:1px solid rgba(255,255,255,.06);padding:8px 10px;border-radius:8px;cursor:pointer}
-button.tog{background:#0b1220}
-.stat{font-size:14px}
-.speedometer{font-size:28px;font-weight:700}
-.small{font-size:12px;color:#9aa6b2}
-.footer{font-size:12px;color:#9aa6b2;margin-top:auto}
-.legend{display:flex;gap:8px;flex-wrap:wrap}
-.chip{background:#0c1116;padding:6px;border-radius:8px;border:1px solid rgba(255,255,255,.03);font-size:13px}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Three-lane Driving Simulator</title>
+    <style>
+        :root {
+            --bg: #101217;
+            --road: #2b2f36;
+            --lane: #3a3f47;
+            --line: #e6e6e6;
+            --ui: #dfe6ee;
+            --player-car: #29a3ff;
+            --ai-car: #ff6b6b;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', 'Segoe UI', system-ui, Arial, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(180deg, #07101a, #0f1720);
+            color: var(--ui);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            max-width: 1200px;
+            width: 100%;
+            gap: 20px;
+        }
+
+        .game-area {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .game-canvas {
+            flex: 1;
+            min-width: 300px;
+            min-height: 500px;
+            border-radius: 14px;
+            overflow: hidden;
+            background: var(--road);
+            box-shadow: 0 8px 30px rgba(2, 6, 23, 0.6);
+            position: relative;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            background: #1a1d23;
+        }
+
+        .hud {
+            width: 300px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .panel {
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.01));
+            padding: 16px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.04);
+        }
+
+        .title {
+            font-weight: 600;
+            margin-bottom: 10px;
+            font-size: 18px;
+            color: var(--ui);
+        }
+
+        .controls {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 10px;
+        }
+
+        button {
+            background: #111827;
+            color: var(--ui);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            padding: 8px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        button:hover {
+            background: #1e293b;
+        }
+
+        button.tog {
+            background: #0b1220;
+        }
+
+        button.tog.active {
+            background: #1e3a8a;
+        }
+
+        .stat {
+            font-size: 14px;
+            margin-bottom: 5px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .stat-value {
+            font-weight: 600;
+        }
+
+        .speedometer {
+            font-size: 28px;
+            font-weight: 700;
+            text-align: center;
+            margin: 10px 0;
+        }
+
+        .small {
+            font-size: 12px;
+            color: #9aa6b2;
+            margin-bottom: 10px;
+        }
+
+        .legend {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+
+        .chip {
+            background: #0c1116;
+            padding: 6px 10px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            font-size: 12px;
+        }
+
+        .instructions {
+            margin-top: 20px;
+            font-size: 14px;
+            color: #9aa6b2;
+            line-height: 1.5;
+        }
+
+        @media (max-width: 768px) {
+            .game-area {
+                flex-direction: column;
+            }
+            
+            .hud {
+                width: 100%;
+            }
+        }
+    </style>
 </head>
 <body>
-<div class="wrap">
-<div class="game panel">
-<canvas id="c"></canvas>
-</div>
+    <div class="container">
+        <h1>Three-lane Driving Simulator</h1>
+        
+        <div class="game-area">
+            <div class="game-canvas">
+                <canvas id="gameCanvas"></canvas>
+            </div>
+            
+            <div class="hud">
+                <div class="panel">
+                    <div class="title">Controls</div>
+                    <div class="small">Arrow Left/Right = steer, Arrow Up = gas, Arrow Down = brake</div>
+                    <div class="controls">
+                        <button id="autopilot" class="tog">Autopilot: OFF</button>
+                        <button id="debug">Debug: OFF</button>
+                        <button id="clear">Clear Learning</button>
+                        <button id="reset">Restart</button>
+                    </div>
+                </div>
+                
+                <div class="panel">
+                    <div class="title">Vehicle Status</div>
+                    <div class="stat">
+                        <span>Speed:</span>
+                        <span id="speed" class="stat-value">0 km/h</span>
+                    </div>
+                    <div class="stat">
+                        <span>Lane Position:</span>
+                        <span id="lanepos" class="stat-value">Center</span>
+                    </div>
+                    <div class="stat">
+                        <span>AI Cars:</span>
+                        <span id="aicount" class="stat-value">0</span>
+                    </div>
+                    
+                    <div class="speedometer">
+                        <span id="speedValue">0</span>
+                        <div class="small">km/h</div>
+                    </div>
+                    
+                    <div class="legend">
+                        <div class="chip">Sensors: 8</div>
+                        <div class="chip">Collision = restart</div>
+                        <div class="chip">Learning saved</div>
+                    </div>
+                </div>
+                
+                <div class="panel">
+                    <div class="title">Debug / Learning</div>
+                    <div id="debugInfo" class="small">No debug information available</div>
+                </div>
+                
+                <div class="instructions">
+                    <p><strong>Tips:</strong> Use number keys 1, 2, 3 to quickly switch lanes. Press Q for left offset, E for right offset.</p>
+                    <p>Autopilot will learn from your driving and avoid collisions using sensor data.</p>
+                </div>
+            </div>
+        </div>
+    </div>
 
-
-<div class="hud">
-<div class="panel">
-<div class="title">Controls</div>
-<div class="small">Arrow Left / Right = steer (smooth). Arrow Up = gas. Arrow Down = brake.</div>
-<div style="height:8px"></div>
-<div class="controls">
-<button id="autopilot" class="tog">Autopilot: OFF</button>
-<button id="debug">Debug: OFF</button>
-<button id="clear">Clear Learning</button>
-<button id="reset">Restart</button>
-</div>
-</div>
-
-
-<div class="panel">
-<div class="title">Vehicle</div>
-<div class="stat">Speed: <span id="speed">0</span> km/h</div>
-<div class="stat">Lane Pos: <span id="lanepos">Center</span></div>
-<div class="stat">AI Cars: <span id="aicount">0</span></div>
-<div style="height:8px"></div>
-<div class="legend">
-<div class="chip">Sensors: 8</div>
-<div class="chip">Collision = restart</div>
-<div class="chip">Learning saved to localStorage</div>
-</div>
-</div>
-
-
-<div class="panel">
-<div class="title">Debug / Learning</div>
-<script>
-// Single-file driving sim: 3 lanes, AI cars, controllable car, autopilot with simple learning saved to localStorage
-(() => {
-  const canvas = document.getElementById('c');
-  const ctx = canvas.getContext('2d');
-  let W, H, scale;
-  function resize(){
-    canvas.width = Math.floor((canvas.clientWidth) * devicePixelRatio);
-    canvas.height = Math.floor((canvas.clientHeight) * devicePixelRatio);
-    W = canvas.width; H = canvas.height; scale = devicePixelRatio;
-  }
-  window.addEventListener('resize', resize);
-  resize();
-
-  // Road layout
-  const road = {x: W*0.12, w: W*0.76};
-  function calcLanes(){
-    road.x = W*0.12; road.w = W*0.76;
-    road.laneW = road.w/3;
-    road.laneCenters = [road.x + road.laneW*0.5, road.x + road.laneW*1.5, road.x + road.laneW*2.5];
-  }
-  calcLanes();
-
-  // Game state
-  let running = true;
-  let debug = false;
-  let autopilot = false;
-  let lastRestart = 0;
-
-  // Player car
-  const player = {
-    x: 0, y: H*0.78,
-    width: 48, height: 80,
-    laneIndex:1, // 0..2 base lane
-    lateralOffset:0, // -1..1 fraction of lane (allows fractional quarter/half)
-    targetOffset:0,
-    speed: 0, maxSpeed: 600, acc: 600, brake: 1200, drag: 300,
-    angle:0,
-    color: '#29a3ff'
-  };
-
-  // AI cars list
-  const aicars = [];
-  function spawnAI(){
-    const lane = Math.floor(Math.random()*3);
-    const laneCenter = road.laneCenters[lane];
-    const width = 46; const height = 82;
-    const speed = 100 + Math.random()*200; // px/s upward (toward y decreasing)
-    const x = laneCenter + (Math.random()-0.5)*20;
-    const y = H + Math.random()*300;
-    aicars.push({x,y,width,height,lane,speed,color:'#ff6b6b',angle:0});
-  }
-  // seed ai
-  for(let i=0;i<6;i++) spawnAI();
-
-  // Controls
-  const keys = {};
-  window.addEventListener('keydown', e=>{if(e.repeat) return; keys[e.key] = true; if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)) e.preventDefault();});
-  window.addEventListener('keyup', e=>{keys[e.key] = false;});
-
-  // UI elements
-  const speedEl = document.getElementById('speed');
-  const laneposEl = document.getElementById('lanepos');
-  const aiCountEl = document.getElementById('aicount');
-  const autopilotBtn = document.getElementById('autopilot');
-  const debugBtn = document.getElementById('debug');
-  const clearBtn = document.getElementById('clear');
-  const resetBtn = document.getElementById('reset');
-
-  autopilotBtn.addEventListener('click', ()=>{autopilot = !autopilot; autopilotBtn.textContent = 'Autopilot: ' + (autopilot?'ON':'OFF');});
-  debugBtn.addEventListener('click', ()=>{debug = !debug; debugBtn.textContent = 'Debug: ' + (debug?'ON':'OFF');});
-  clearBtn.addEventListener('click', ()=>{localStorage.removeItem('lane_ai_learning_v1'); alert('Learning data cleared');});
-  resetBtn.addEventListener('click', restart);
-
-  // Sensors
-  const sensorAngles = [ -30, -15, -5, 5, 15, 30, 180-20, 180+20 ]; // degrees relative to car forward (0 = up)
-  function deg2rad(d){return d*Math.PI/180}
-
-  // Learning memory
-  const LSKEY = 'lane_ai_learning_v1';
-  let memory = loadMemory();
-  function loadMemory(){ try{ return JSON.parse(localStorage.getItem(LSKEY) || '{}') }catch(e){return{}} }
-  function saveMemory(){ localStorage.setItem(LSKEY, JSON.stringify(memory)); }
-
-  // Discretize sensor readings to create a key
-  function makeSensorKey(readings){ // readings 0..1 distances
-    const bins = readings.map(r=>{
-      if(r>0.85) return '3';
-      if(r>0.6) return '2';
-      if(r>0.35) return '1';
-      return '0';
-    });
-    return bins.join('');
-  }
-
-  // Action mapping
-  const ACTIONS = ['left','straight','right','brake','accel'];
-
-  // Keep last action for learning feedback
-  let lastDecision = null; let lastDecisionTime = 0;
-
-  // Raycast helper for sensors: returns normalized distance 0..1 (1 = no obstacle within range)
-  function senseFrom(x,y,angleDeg,range=500){
-    const a = deg2rad(angleDeg-90); // transform so 0deg is up (-y)
-    const dx = Math.cos(a), dy = Math.sin(a);
-    let closest = range;
-    // test against ai cars and player (but don't sense itself)
-    for(const c of aicars){
-      // sample along ray and check intersection with box of car
-      // approximate by checking the perpendicular distance to the car center projected onto ray
-      const rx = c.x - x, ry = c.y - y;
-      const proj = rx*dx + ry*dy; if(proj < 0) continue; if(proj>range) continue;
-      const px = x + dx*proj, py = y + dy*proj;
-      // distance from this point to car center
-      const dist = Math.hypot(px-c.x, py-c.y);
-      const radius = Math.max(c.width,c.height)/2;
-      if(dist < radius+6){ closest = Math.min(closest, proj); }
-    }
-    // also world bounds
-    const worldDist = (y - 0) / Math.abs(dy||1); // distance to top
-    // not precise but ok
-    return Math.max(0, Math.min(1, closest / range));
-  }
-
-  // Collision detection AABB
-  function rectsCollide(a,b){
-    return !(a.x - a.width/2 > b.x + b.width/2 || a.x + a.width/2 < b.x - b.width/2 || a.y - a.height/2 > b.y + b.height/2 || a.y + a.height/2 < b.y - b.height/2);
-  }
-
-  // Restart
-  function restart(){
-    aicars.length = 0; for(let i=0;i<6;i++) spawnAI();
-    player.speed = 0; player.laneIndex=1; player.lateralOffset=0; player.targetOffset=0; player.x = road.laneCenters[1]; player.y = H*0.78; lastRestart = performance.now();
-  }
-
-  // Init player pos
-  player.x = road.laneCenters[player.laneIndex];
-
-  // Game loop
-  let last = performance.now();
-  function loop(t){
-    const dt = Math.min(0.05, (t-last)/1000); last = t;
-    update(dt);
-    render();
-    if(running) requestAnimationFrame(loop);
-  }
-  requestAnimationFrame(loop);
-
-  function update(dt){
-    // responsive sizing update lanes if container changed
-    calcLanes();
-
-    // handle input
-    if(!autopilot){
-      // steering input increments target offset smoothly
-      if(keys['ArrowLeft']){
-        player.targetOffset -= 1*dt*2; // adjust sensitivity
-      }
-      if(keys['ArrowRight']){
-        player.targetOffset += 1*dt*2;
-      }
-      // clamp
-      player.targetOffset = Math.max(-1.5, Math.min(1.5, player.targetOffset));
-
-      if(keys['ArrowUp']){ player.speed += player.acc * dt; }
-      else if(keys['ArrowDown']){ player.speed -= player.brake * dt; }
-      else { // natural drag
-        if(player.speed > 0) player.speed = Math.max(0, player.speed - player.drag*dt);
-        else player.speed = Math.min(0, player.speed + player.drag*dt);
-      }
-    }
-
-    // autopilot logic
-    if(autopilot){
-      // get sensor readings
-      const readings = sensorAngles.map(ang => senseFrom(player.x, player.y, ang, 450));
-      const key = makeSensorKey(readings);
-      let chosen = null;
-      // exploit memory
-      if(memory[key]){
-        // choose best action by score
-        const scores = memory[key];
-        let best = -Infinity; let bestAct = 1;
-        for(let i=0;i<ACTIONS.length;i++){ const s = scores[i]||0; if(s>best){best=s; bestAct=i}};
-        chosen = bestAct;
-      }
-      // otherwise heuristic + exploration
-      if(chosen===null){
-        // if obstacle close ahead
-        const frontAvg = (readings[2]+readings[3])/2; // central front sensors
-        if(frontAvg < 0.35){
-          // prefer side with more space
-          const left = Math.min(readings[0], readings[1]);
-          const right = Math.min(readings[4], readings[5]);
-          chosen = (left > right) ? 0 : 2; // left or right
-        } else {
-          chosen = 1; // straight
+    <script>
+        // Main game variables
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        let W, H, scale;
+        
+        // UI elements
+        const speedEl = document.getElementById('speedValue');
+        const laneposEl = document.getElementById('lanepos');
+        const aiCountEl = document.getElementById('aicount');
+        const debugInfoEl = document.getElementById('debugInfo');
+        const autopilotBtn = document.getElementById('autopilot');
+        const debugBtn = document.getElementById('debug');
+        const clearBtn = document.getElementById('clear');
+        const resetBtn = document.getElementById('reset');
+        
+        // Road layout
+        const road = {
+            x: 0, 
+            w: 0,
+            laneW: 0,
+            laneCenters: []
+        };
+        
+        function calcLanes() {
+            road.x = W * 0.12;
+            road.w = W * 0.76;
+            road.laneW = road.w / 3;
+            road.laneCenters = [
+                road.x + road.laneW * 0.5,
+                road.x + road.laneW * 1.5,
+                road.x + road.laneW * 2.5
+            ];
         }
-        // exploration: small chance to try other
-        if(Math.random()<0.08) chosen = Math.floor(Math.random()*ACTIONS.length);
-      }
-
-      // perform action
-      applyActionIndex(chosen, dt);
-      // store last decision for feedback
-      lastDecision = {key,action:chosen}; lastDecisionTime = performance.now();
-    }
-
-    // smooth lateral move towards lane base + offset
-    const baseX = road.laneCenters[player.laneIndex];
-    const laneOffset = player.targetOffset * (road.laneW/2); // allow half lane width shifts when targetOffset=1
-    const targetX = baseX + laneOffset;
-    // simple spring smoothing
-    const dx = targetX - player.x;
-    player.x += dx * Math.min(1, 8*dt);
-    // tilt angle based on lateral velocity
-    player.angle = clamp(-dx*4, -0.6, 0.6);
-
-    // speed clamp
-    player.speed = clamp(player.speed, 0, player.maxSpeed);
-    // move player forward (upwards) relative to screen
-    player.y -= player.speed * dt * 0.6; // scaling so it feels right
-
-    // update ai cars
-    for(const c of aicars){
-      c.y -= c.speed * dt * 0.6;
-      // slight lateral noise to make them dynamic
-      c.x += (Math.sin((t/1000)+c.y/200)+Math.cos(c.y/180))*0.2;
-    }
-    // recycle ai cars off top
-    for(let i=aicars.length-1;i>=0;i--){ if(aicars[i].y + aicars[i].height/2 < -80){ aicars.splice(i,1); spawnAI(); } }
-
-    // update HUD
-    speedEl.textContent = Math.round(player.speed/ (player.maxSpeed/240));
-    laneposEl.textContent = `Lane ${player.laneIndex+1} off ${player.targetOffset.toFixed(2)}`;
-    aiCountEl.textContent = aicars.length;
-
-    // sensors feedback and collision
-    // construct simple player rect
-    const pRect = {x:player.x, y:player.y, width:player.width, height:player.height};
-    for(const c of aicars){
-      if(rectsCollide(pRect, c)){
-        // collision — provide negative feedback to memory
-        running = true; // ensure loop continues
-        // adjust memory: penalize lastDecision
-        if(lastDecision && memory[lastDecision.key]){
-          memory[lastDecision.key][lastDecision.action] = (memory[lastDecision.key][lastDecision.action]||0) - 3; saveMemory();
+        
+        // Game state
+        let running = true;
+        let debug = false;
+        let autopilot = false;
+        let lastRestart = 0;
+        
+        // Player car
+        const player = {
+            x: 0,
+            y: 0,
+            width: 48,
+            height: 80,
+            laneIndex: 1,
+            lateralOffset: 0,
+            targetOffset: 0,
+            speed: 0,
+            maxSpeed: 600,
+            acc: 600,
+            brake: 1200,
+            drag: 300,
+            angle: 0,
+            color: '#29a3ff'
+        };
+        
+        // AI cars
+        const aicars = [];
+        
+        function spawnAI() {
+            const lane = Math.floor(Math.random() * 3);
+            const laneCenter = road.laneCenters[lane];
+            const width = 46;
+            const height = 82;
+            const speed = 100 + Math.random() * 200;
+            const x = laneCenter + (Math.random() - 0.5) * 20;
+            const y = H + Math.random() * 300;
+            
+            aicars.push({
+                x, y, width, height, lane, speed,
+                color: '#ff6b6b',
+                angle: 0
+            });
         }
-        // flash and restart
-        flashAndRestart();
-        return;
-      }
-    }
-
-    // provide positive feedback if lastDecision survived some time
-    if(lastDecision && performance.now()-lastDecisionTime > 1500){
-      // reward
-      memory[lastDecision.key] = memory[lastDecision.key] || {};
-      memory[lastDecision.key][lastDecision.action] = (memory[lastDecision.key][lastDecision.action]||0) + 1;
-      saveMemory();
-      lastDecision = null;
-    }
-  }
-
-  function applyActionIndex(idx, dt){
-    switch(idx){
-      case 0: // left
-        player.targetOffset -= 0.9 * dt * 6; break;
-      case 1: // straight
-        player.targetOffset += (0 - player.targetOffset) * Math.min(1, 4*dt); break;
-      case 2: // right
-        player.targetOffset += 0.9 * dt * 6; break;
-      case 3: // brake
-        player.speed -= player.brake * dt * 1.2; break;
-      case 4: // accel
-        player.speed += player.acc * dt * 0.9; break;
-    }
-    player.targetOffset = clamp(player.targetOffset, -1.5, 1.5);
-  }
-
-  function flashAndRestart(){
-    // simple visual flash by pausing and respawn
-    const t0 = performance.now();
-    // penalize memory a bit generally
-    setTimeout(()=>{ restart(); }, 350);
-  }
-
-  function render(){
-    // clear
-    ctx.clearRect(0,0,W,H);
-    // draw road background
-    ctx.fillStyle = getComputedStyle(document.body).getPropertyValue('--road') || '#2b2f36';
-    ctx.fillRect(road.x - 40, 0, road.w + 80, H);
-
-    // draw lanes
-    for(let i=0;i<4;i++){
-      const x = road.x + i*road.laneW;
-      ctx.fillStyle = 'rgba(255,255,255,0.02)';
-      ctx.fillRect(x,0,2,H);
-    }
-
-    // dashed center lines
-    ctx.strokeStyle = '#bfc7cc'; ctx.lineWidth = 4; ctx.setLineDash([24,20]);
-    for(let i=1;i<=2;i++){
-      const cx = road.x + i*road.laneW;
-      ctx.beginPath(); ctx.moveTo(cx,0); ctx.lineTo(cx,H); ctx.stroke();
-    }
-    ctx.setLineDash([]);
-
-    // draw ai cars
-    for(const c of aicars){ drawCar(c.x, c.y, c.width, c.height, c.angle, c.color);} 
-    // draw player
-    drawCar(player.x, player.y, player.width, player.height, player.angle, player.color, true);
-
-    // draw debug sensors
-    if(debug || autopilot){
-      const readings = sensorAngles.map(ang => senseFrom(player.x, player.y, ang, 450));
-      for(let i=0;i<sensorAngles.length;i++){
-        const ang = sensorAngles[i];
-        const d = readings[i]*450;
-        drawSensor(player.x, player.y, ang-90, d, readings[i]);
-      }
-    }
-
-    // small HUD on canvas
-    ctx.fillStyle = 'rgba(0,0,0,0.25)'; ctx.fillRect(14,14,220,76);
-    ctx.fillStyle = '#fff'; ctx.font = `${14*scale}px system-ui`; ctx.fillText(`Speed: ${Math.round(player.speed/ (player.maxSpeed/240))} km/h`, 24, 38);
-    ctx.fillText(`Autopilot: ${autopilot?'ON':'OFF'}`, 24, 60);
-    ctx.fillText(`Debug: ${debug?'ON':'OFF'}`, 24, 80);
-  }
-
-  function drawCar(cx, cy, w, h, ang, color, isPlayer=false){
-    ctx.save(); ctx.translate(cx, cy); ctx.rotate(ang);
-    // shadow
-    ctx.fillStyle = 'rgba(0,0,0,0.25)'; ctx.fillRect(-w/2+4, -h/2+6, w, h);
-    // body
-    ctx.fillStyle = color; ctx.fillRect(-w/2, -h/2, w, h);
-    // windows
-    ctx.fillStyle = 'rgba(255,255,255,0.12)'; ctx.fillRect(-w/2+6, -h/2+10, w-12, h*0.35);
-    // wheels
-    ctx.fillStyle = '#111'; ctx.fillRect(-w/2-6, -h/2+14, 8, 18); ctx.fillRect(w/2-2, -h/2+14, 8, 18);
-    ctx.restore();
-    if(isPlayer){
-      // draw outline
-      ctx.beginPath(); ctx.strokeStyle='rgba(255,255,255,0.06)'; ctx.lineWidth=2; ctx.rect(cx-w/2, cy-h/2, w, h); ctx.stroke();
-    }
-  }
-
-  function drawSensor(x,y,angleDeg,dist,val){
-    const a = deg2rad(angleDeg);
-    const dx = Math.cos(a), dy = Math.sin(a);
-    ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x+dx*dist, y+dy*dist);
-    ctx.strokeStyle = val>0.6? 'rgba(80,200,120,0.9)' : (val>0.35? 'rgba(240,180,60,0.9)' : 'rgba(240,80,80,0.95)');
-    ctx.lineWidth = 2; ctx.stroke();
-    // dot at end
-    ctx.fillStyle = ctx.strokeStyle; ctx.beginPath(); ctx.arc(x+dx*dist, y+dy*dist, 4,0,Math.PI*2); ctx.fill();
-  }
-
-  function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
-
-  // allow partial lane targets using Q/W keys quick shortcuts
-  window.addEventListener('keydown', e=>{
-    if(e.key==='1'){ player.laneIndex = 0; }
-    if(e.key==='2'){ player.laneIndex = 1; }
-    if(e.key==='3'){ player.laneIndex = 2; }
-    if(e.key==='q'){ player.targetOffset = -0.5; }
-    if(e.key==='e'){ player.targetOffset = 0.5; }
-  });
-
-  // ensure resize awareness
-  const ro = new ResizeObserver(()=>{ resize(); calcLanes(); });
-  ro.observe(canvas);
-
-  // save memory periodically
-  setInterval(saveMemory, 4000);
-
-  // initial draw
-  render();
-
-})();
-</script>
+        
+        // Initialize AI cars
+        for (let i = 0; i < 6; i++) {
+            spawnAI();
+        }
+        
+        // Controls
+        const keys = {};
+        
+        window.addEventListener('keydown', e => {
+            if (e.repeat) return;
+            keys[e.key] = true;
+            if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) {
+                e.preventDefault();
+            }
+        });
+        
+        window.addEventListener('keyup', e => {
+            keys[e.key] = false;
+        });
+        
+        // Sensors
+        const sensorAngles = [-30, -15, -5, 5, 15, 30, 180 - 20, 180 + 20];
+        
+        function deg2rad(d) {
+            return d * Math.PI / 180;
+        }
+        
+        // Learning memory
+        const LSKEY = 'lane_ai_learning_v1';
+        let memory = loadMemory();
+        
+        function loadMemory() {
+            try {
+                return JSON.parse(localStorage.getItem(LSKEY) || '{}');
+            } catch (e) {
+                return {};
+            }
+        }
+        
+        function saveMemory() {
+            localStorage.setItem(LSKEY, JSON.stringify(memory));
+        }
+        
+        // Discretize sensor readings to create a key
+        function makeSensorKey(readings) {
+            const bins = readings.map(r => {
+                if (r > 0.85) return '3';
+                if (r > 0.6) return '2';
+                if (r > 0.35) return '1';
+                return '0';
+            });
+            return bins.join('');
+        }
+        
+        // Action mapping
+        const ACTIONS = ['left', 'straight', 'right', 'brake', 'accel'];
+        
+        // Keep last action for learning feedback
+        let lastDecision = null;
+        let lastDecisionTime = 0;
+        
+        // Setup canvas
+        function resize() {
+            const container = canvas.parentElement;
+            canvas.width = Math.floor(container.clientWidth * devicePixelRatio);
+            canvas.height = Math.floor(container.clientHeight * devicePixelRatio);
+            W = canvas.width;
+            H = canvas.height;
+            scale = devicePixelRatio;
+            
+            calcLanes();
+            player.x = road.laneCenters[player.laneIndex];
+            player.y = H * 0.78;
+        }
+        
+        window.addEventListener('resize', resize);
+        resize();
+        
+        // Raycast helper for sensors
+        function senseFrom(x, y, angleDeg, range = 500) {
+            const a = deg2rad(angleDeg - 90);
+            const dx = Math.cos(a);
+            const dy = Math.sin(a);
+            let closest = range;
+            
+            // Test against AI cars
+            for (const c of aicars) {
+                const rx = c.x - x;
+                const ry = c.y - y;
+                const proj = rx * dx + ry * dy;
+                
+                if (proj < 0) continue;
+                if (proj > range) continue;
+                
+                const px = x + dx * proj;
+                const py = y + dy * proj;
+                const dist = Math.hypot(px - c.x, py - c.y);
+                const radius = Math.max(c.width, c.height) / 2;
+                
+                if (dist < radius + 6) {
+                    closest = Math.min(closest, proj);
+                }
+            }
+            
+            // Distance to top of screen
+            const worldDist = (y - 0) / Math.abs(dy || 1);
+            if (worldDist < closest) {
+                closest = worldDist;
+            }
+            
+            return Math.max(0, Math.min(1, closest / range));
+        }
+        
+        // Collision detection
+        function rectsCollide(a, b) {
+            return !(
+                a.x - a.width / 2 > b.x + b.width / 2 ||
+                a.x + a.width / 2 < b.x - b.width / 2 ||
+                a.y - a.height / 2 > b.y + b.height / 2 ||
+                a.y + a.height / 2 < b.y - b.height / 2
+            );
+        }
+        
+        // Restart game
+        function restart() {
+            aicars.length = 0;
+            for (let i = 0; i < 6; i++) spawnAI();
+            player.speed = 0;
+            player.laneIndex = 1;
+            player.lateralOffset = 0;
+            player.targetOffset = 0;
+            player.x = road.laneCenters[1];
+            player.y = H * 0.78;
+            lastRestart = performance.now();
+        }
+        
+        // Button event listeners
+        autopilotBtn.addEventListener('click', () => {
+            autopilot = !autopilot;
+            autopilotBtn.textContent = 'Autopilot: ' + (autopilot ? 'ON' : 'OFF');
+            autopilotBtn.classList.toggle('active', autopilot);
+        });
+        
+        debugBtn.addEventListener('click', () => {
+            debug = !debug;
+            debugBtn.textContent = 'Debug: ' + (debug ? 'ON' : 'OFF');
+            debugBtn.classList.toggle('active', debug);
+        });
+        
+        clearBtn.addEventListener('click', () => {
+            localStorage.removeItem(LSKEY);
+            memory = {};
+            alert('Learning data cleared');
+        });
+        
+        resetBtn.addEventListener('click', restart);
+        
+        // Apply action from autopilot
+        function applyActionIndex(idx, dt) {
+            switch (idx) {
+                case 0: // left
+                    player.targetOffset -= 0.9 * dt * 6;
+                    break;
+                case 1: // straight
+                    player.targetOffset += (0 - player.targetOffset) * Math.min(1, 4 * dt);
+                    break;
+                case 2: // right
+                    player.targetOffset += 0.9 * dt * 6;
+                    break;
+                case 3: // brake
+                    player.speed -= player.brake * dt * 1.2;
+                    break;
+                case 4: // accel
+                    player.speed += player.acc * dt * 0.9;
+                    break;
+            }
+            player.targetOffset = clamp(player.targetOffset, -1.5, 1.5);
+        }
+        
+        // Flash and restart on collision
+        function flashAndRestart() {
+            // Visual flash effect
+            canvas.style.backgroundColor = 'rgba(255, 80, 80, 0.3)';
+            setTimeout(() => {
+                canvas.style.backgroundColor = '';
+                restart();
+            }, 350);
+        }
+        
+        // Clamp function
+        function clamp(v, a, b) {
+            return Math.max(a, Math.min(b, v));
+        }
+        
+        // Update game state
+        function update(dt) {
+            // Handle input
+            if (!autopilot) {
+                // Steering
+                if (keys['ArrowLeft']) {
+                    player.targetOffset -= 1 * dt * 2;
+                }
+                if (keys['ArrowRight']) {
+                    player.targetOffset += 1 * dt * 2;
+                }
+                player.targetOffset = clamp(player.targetOffset, -1.5, 1.5);
+                
+                // Acceleration
+                if (keys['ArrowUp']) {
+                    player.speed += player.acc * dt;
+                } else if (keys['ArrowDown']) {
+                    player.speed -= player.brake * dt;
+                } else {
+                    // Natural drag
+                    if (player.speed > 0) {
+                        player.speed = Math.max(0, player.speed - player.drag * dt);
+                    } else {
+                        player.speed = Math.min(0, player.speed + player.drag * dt);
+                    }
+                }
+            } else {
+                // Autopilot logic
+                const readings = sensorAngles.map(ang => senseFrom(player.x, player.y, ang, 450));
+                const key = makeSensorKey(readings);
+                let chosen = null;
+                
+                // Exploit memory
+                if (memory[key]) {
+                    const scores = memory[key];
+                    let best = -Infinity;
+                    let bestAct = 1;
+                    
+                    for (let i = 0; i < ACTIONS.length; i++) {
+                        const s = scores[i] || 0;
+                        if (s > best) {
+                            best = s;
+                            bestAct = i;
+                        }
+                    }
+                    
+                    chosen = bestAct;
+                }
+                
+                // Heuristic + exploration
+                if (chosen === null) {
+                    const frontAvg = (readings[2] + readings[3]) / 2;
+                    
+                    if (frontAvg < 0.35) {
+                        const left = Math.min(readings[0], readings[1]);
+                        const right = Math.min(readings[4], readings[5]);
+                        chosen = left > right ? 0 : 2;
+                    } else {
+                        chosen = 1;
+                    }
+                    
+                    // Exploration
+                    if (Math.random() < 0.08) {
+                        chosen = Math.floor(Math.random() * ACTIONS.length);
+                    }
+                }
+                
+                // Perform action
+                applyActionIndex(chosen, dt);
+                
+                // Store last decision for feedback
+                lastDecision = { key, action: chosen };
+                lastDecisionTime = performance.now();
+                
+                // Update debug info
+                if (debug) {
+                    debugInfoEl.textContent = `Sensors: ${readings.map(r => r.toFixed(2)).join(', ')}`;
+                }
+            }
+            
+            // Smooth lateral movement
+            const baseX = road.laneCenters[player.laneIndex];
+            const laneOffset = player.targetOffset * (road.laneW / 2);
+            const targetX = baseX + laneOffset;
+            const dx = targetX - player.x;
+            player.x += dx * Math.min(1, 8 * dt);
+            
+            // Tilt angle based on lateral velocity
+            player.angle = clamp(-dx * 4, -0.6, 0.6);
+            
+            // Speed management
+            player.speed = clamp(player.speed, 0, player.maxSpeed);
+            player.y -= player.speed * dt * 0.6;
+            
+            // Update AI cars
+            for (const c of aicars) {
+                c.y -= c.speed * dt * 0.6;
+                c.x += (Math.sin((performance.now() / 1000) + c.y / 200) + Math.cos(c.y / 180)) * 0.2;
+            }
+            
+            // Recycle AI cars
+            for (let i = aicars.length - 1; i >= 0; i--) {
+                if (aicars[i].y + aicars[i].height / 2 < -80) {
+                    aicars.splice(i, 1);
+                    spawnAI();
+                }
+            }
+            
+            // Update HUD
+            speedEl.textContent = Math.round(player.speed / (player.maxSpeed / 240));
+            laneposEl.textContent = `Lane ${player.laneIndex + 1} (${player.targetOffset.toFixed(2)})`;
+            aiCountEl.textContent = aicars.length;
+            
+            // Collision detection
+            const pRect = { x: player.x, y: player.y, width: player.width, height: player.height };
+            
+            for (const c of aicars) {
+                if (rectsCollide(pRect, c)) {
+                    // Negative feedback for autopilot
+                    if (lastDecision && memory[lastDecision.key]) {
+                        memory[lastDecision.key][lastDecision.action] = (memory[lastDecision.key][lastDecision.action] || 0) - 3;
+                        saveMemory();
+                    }
+                    
+                    flashAndRestart();
+                    return;
+                }
+            }
+            
+            // Positive feedback for good decisions
+            if (lastDecision && performance.now() - lastDecisionTime > 1500) {
+                memory[lastDecision.key] = memory[lastDecision.key] || {};
+                memory[lastDecision.key][lastDecision.action] = (memory[lastDecision.key][lastDecision.action] || 0) + 1;
+                saveMemory();
+                lastDecision = null;
+            }
+        }
+        
+        // Render game
+        function render() {
+            // Clear canvas
+            ctx.clearRect(0, 0, W, H);
+            
+            // Draw road background
+            ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--road') || '#2b2f36';
+            ctx.fillRect(road.x - 40, 0, road.w + 80, H);
+            
+            // Draw lane markings
+            for (let i = 0; i < 4; i++) {
+                const x = road.x + i * road.laneW;
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+                ctx.fillRect(x, 0, 2, H);
+            }
+            
+            // Draw center lines
+            ctx.strokeStyle = '#bfc7cc';
+            ctx.lineWidth = 4;
+            ctx.setLineDash([24, 20]);
+            
+            for (let i = 1; i <= 2; i++) {
+                const cx = road.x + i * road.laneW;
+                ctx.beginPath();
+                ctx.moveTo(cx, 0);
+                ctx.lineTo(cx, H);
+                ctx.stroke();
+            }
+            
+            ctx.setLineDash([]);
+            
+            // Draw AI cars
+            for (const c of aicars) {
+                drawCar(c.x, c.y, c.width, c.height, c.angle, c.color);
+            }
+            
+            // Draw player car
+            drawCar(player.x, player.y, player.width, player.height, player.angle, player.color, true);
+            
+            // Draw sensors if debug mode is on
+            if (debug || autopilot) {
+                const readings = sensorAngles.map(ang => senseFrom(player.x, player.y, ang, 450));
+                
+                for (let i = 0; i < sensorAngles.length; i++) {
+                    const ang = sensorAngles[i];
+                    const d = readings[i] * 450;
+                    drawSensor(player.x, player.y, ang - 90, d, readings[i]);
+                }
+            }
+            
+            // Draw HUD on canvas
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+            ctx.fillRect(14, 14, 220, 76);
+            
+            ctx.fillStyle = '#fff';
+            ctx.font = `${14 * scale}px system-ui`;
+            ctx.fillText(`Speed: ${Math.round(player.speed / (player.maxSpeed / 240))} km/h`, 24, 38);
+            ctx.fillText(`Autopilot: ${autopilot ? 'ON' : 'OFF'}`, 24, 60);
+            ctx.fillText(`Debug: ${debug ? 'ON' : 'OFF'}`, 24, 80);
+        }
+        
+        // Draw a car
+        function drawCar(cx, cy, w, h, ang, color, isPlayer = false) {
+            ctx.save();
+            ctx.translate(cx, cy);
+            ctx.rotate(ang);
+            
+            // Shadow
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
+            ctx.fillRect(-w / 2 + 4, -h / 2 + 6, w, h);
+            
+            // Body
+            ctx.fillStyle = color;
+            ctx.fillRect(-w / 2, -h / 2, w, h);
+            
+            // Windows
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.12)';
+            ctx.fillRect(-w / 2 + 6, -h / 2 + 10, w - 12, h * 0.35);
+            
+            // Wheels
+            ctx.fillStyle = '#111';
+            ctx.fillRect(-w / 2 - 6, -h / 2 + 14, 8, 18);
+            ctx.fillRect(w / 2 - 2, -h / 2 + 14, 8, 18);
+            
+            ctx.restore();
+            
+            // Outline for player car
+            if (isPlayer) {
+                ctx.beginPath();
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+                ctx.lineWidth = 2;
+                ctx.rect(cx - w / 2, cy - h / 2, w, h);
+                ctx.stroke();
+            }
+        }
+        
+        // Draw a sensor line
+        function drawSensor(x, y, angleDeg, dist, val) {
+            const a = deg2rad(angleDeg);
+            const dx = Math.cos(a);
+            const dy = Math.sin(a);
+            
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            ctx.lineTo(x + dx * dist, y + dy * dist);
+            
+            ctx.strokeStyle = val > 0.6 ? 'rgba(80, 200, 120, 0.9)' : 
+                              val > 0.35 ? 'rgba(240, 180, 60, 0.9)' : 
+                              'rgba(240, 80, 80, 0.95)';
+            
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            
+            // Dot at end
+            ctx.fillStyle = ctx.strokeStyle;
+            ctx.beginPath();
+            ctx.arc(x + dx * dist, y + dy * dist, 4, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        
+        // Quick lane switching
+        window.addEventListener('keydown', e => {
+            if (e.key === '1') player.laneIndex = 0;
+            if (e.key === '2') player.laneIndex = 1;
+            if (e.key === '3') player.laneIndex = 2;
+            if (e.key === 'q') player.targetOffset = -0.5;
+            if (e.key === 'e') player.targetOffset = 0.5;
+        });
+        
+        // Game loop
+        let lastTime = performance.now();
+        
+        function gameLoop(t) {
+            const dt = Math.min(0.05, (t - lastTime) / 1000);
+            lastTime = t;
+            
+            update(dt);
+            render();
+            
+            if (running) {
+                requestAnimationFrame(gameLoop);
+            }
+        }
+        
+        // Start the game
+        requestAnimationFrame(gameLoop);
+        
+        // Save memory periodically
+        setInterval(saveMemory, 4000);
+    </script>
 </body>
 </html>
