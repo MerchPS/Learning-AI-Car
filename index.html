@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulator Mengemudi dengan Autopilot</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Arial', sans-serif;
+        }
+        
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #2c3e50, #1a1a2e);
+            overflow: hidden;
+            color: white;
+        }
+        
+        .container {
+            display: flex;
+            flex-direction: column;
+            width: 1000px;
+            max-width: 95%;
+            gap: 20px;
+            padding: 20px;
+        }
+        
+        .game-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 20px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 10px;
+        }
+        
+        .score-box, .speed-box, .status-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .score-value, .speed-value, .status-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #ffcc00;
+        }
+        
+        .game-container {
+            position: relative;
+            width: 100%;
+            height: 500px;
+            background: #0d1b2a;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+        }
+        
+        .road {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: #1b263b;
+        }
+        
+        .lane {
+            position: absolute;
+            width: 100%;
+            height: 1px;
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
+        .lane-middle {
+            position: absolute;
+            width: 100%;
+            height: 2px;
+            background: rgba(255, 255, 255, 0.5);
+        }
+        
+        .car {
+            position: absolute;
+            width: 40px;
+            height: 70px;
+            border-radius: 5px;
+            transition: transform 0.1s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-weight: bold;
+            font-size: 12px;
+            text-shadow: 1px 1px 2px black;
+        }
+        
+        .my-car {
+            background: linear-gradient(to bottom, #ff0000, #990000);
+            border: 2px solid #ffcc00;
+            z-index: 100;
+        }
+        
+        .ai-car {
+            background: linear-gradient(to bottom, #0066ff, #003399);
+            border: 2px solid #00ccff;
+        }
+        
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 10px;
+        }
+        
+        .control-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            background: linear-gradient(to bottom, #3498db, #2980b9);
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .control-btn:hover {
+            background: linear-gradient(to bottom, #2980b9, #1c6ea4);
+            transform: translateY(-2px);
+        }
+        
+        .control-btn:active {
+            transform: translateY(1px);
+        }
+        
+        .debug-mode {
+            background: linear-gradient(to bottom, #e74c3c, #c0392b);
+        }
+        
+        .autopilot-active {
+            background: linear-gradient(to bottom, #2ecc71, #27ae60);
+        }
+        
+        .sensor-line {
+            position: absolute;
+            background: rgba(0, 255, 0, 0.5);
+            z-index: 99;
+        }
+        
+        .collision-point {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: red;
+            border-radius: 50%;
+            z-index: 101;
+        }
+        
+        .instructions {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 10px;
+        }
+        
+        .instructions h3 {
+            color: #ffcc00;
+            margin-bottom: 10px;
+        }
+        
+        .instructions ul {
+            list-style-type: none;
+            padding-left: 10px;
+        }
+        
+        .instructions li {
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+        
+        .key {
+            display: inline-block;
+            padding: 2px 6px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        
+        .debug-info {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            max-width: 250px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="game-header">
+            <div class="score-box">
+                <div class="score-title">SCORE</div>
+                <div class="score-value" id="score">0</div>
+            </div>
+            <div class="speed-box">
+                <div class="speed-title">SPEED</div>
+                <div class="speed-value" id="speed">0 km/h</div>
+            </div>
+            <div class="status-box">
+                <div class="status-title">STATUS</div>
+                <div class="status-value" id="status">NORMAL</div>
+            </div>
+        </div>
+        
+        <div class="game-container" id="gameContainer">
+            <div class="road" id="road">
+                <!-- Lanes will be generated by JavaScript -->
+            </div>
+            <div class="debug-info" id="debugInfo"></div>
+        </div>
+        
+        <div class="controls">
+            <button class="control-btn" id="debugBtn">DEBUG: OFF</button>
+            <button class="control-btn" id="autopilotBtn">AUTOPILOT: OFF</button>
+            <button class="control-btn" id="resetBtn">RESTART</button>
+        </div>
+        
+        <div class="instructions">
+            <h3>Cara Bermain:</h3>
+            <ul>
+                <li>Gunakan tombol <span class="key">←</span> dan <span class="key">→</span> untuk pindah jalur</li>
+                <li>Gunakan tombol <span class="key">↑</span> untuk mempercepat</li>
+                <li>Gunakan tombol <span class="key">↓</span> untuk memperlambat</li>
+                <li>Hindari tabrakan dengan mobil AI</li>
+                <li>Aktifkan DEBUG untuk melihat sensor mobil</li>
+                <li>Aktifkan AUTOPILOT untuk mode menyetir otomatis</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Game variables
+            const gameContainer = document.getElementById('gameContainer');
+            const road = document.getElementById('road');
+            const scoreElement = document.getElementById('score');
+            const speedElement = document.getElementById('speed');
+            const statusElement = document.getElementById('status');
+            const debugInfoElement = document.getElementById('debugInfo');
+            const debugBtn = document.getElementById('debugBtn');
+            const autopilotBtn = document.getElementById('autopilotBtn');
+            const resetBtn = document.getElementById('resetBtn');
+            
+            // Game state
+            let gameState = {
+                score: 0,
+                speed: 0,
+                status: 'NORMAL',
+                debugMode: false,
+                autopilot: false,
+                lanes: [100, 300, 500],
+                myCar: {
+                    x: 300,
+                    y: 400,
+                    width: 40,
+                    height: 70,
+                    lane: 1, // 0, 1, 2
+                    speed: 0,
+                    maxSpeed: 200,
+                    acceleration: 2,
+                    deceleration: 3,
+                    targetX: 300
+                },
+                aiCars: [],
+                sensorData: {},
+                collision: false,
+                learningData: JSON.parse(localStorage.getItem('autopilotLearning')) || {}
+            };
+            
+            // Initialize the game
+            function init() {
+                createRoad();
+                createMyCar();
+                generateAICars();
+                gameLoop();
+                
+                // Event listeners
+                document.addEventListener('keydown', handleKeyDown);
+                debugBtn.addEventListener('click', toggleDebugMode);
+                autopilotBtn.addEventListener('click', toggleAutopilot);
+                resetBtn.addEventListener('click', resetGame);
+            }
+            
+            // Create road with lanes
+            function createRoad() {
+                road.innerHTML = '';
+                
+                // Create lane markings
+                for (let i = 0; i < 3; i++) {
+                    const laneMiddle = document.createElement('div');
+                    laneMiddle.className = 'lane-middle';
+                    laneMiddle.style.top = gameState.lanes[i] + 'px';
+                    road.appendChild(laneMiddle);
+                    
+                    for (let j = 0; j < 20; j++) {
+                        const lane = document.createElement('div');
+                        lane.className = 'lane';
+                        lane.style.top = (j * 50) + 'px';
+                        lane.style.left = gameState.lanes[i] + 'px';
+                        road.appendChild(lane);
+                    }
+                }
+            }
+            
+            // Create player's car
+            function createMyCar() {
+                const myCar = document.createElement('div');
+                myCar.className = 'car my-car';
+                myCar.id = 'myCar';
+                myCar.style.left = (gameState.myCar.x - gameState.myCar.width/2) + 'px';
+                myCar.style.top = (gameState.myCar.y - gameState.myCar.height/2) + 'px';
+                myCar.innerHTML = 'ME';
+                road.appendChild(myCar);
+            }
+            
+            // Generate AI cars
+            function generateAICars() {
+                gameState.aiCars = [];
+                
+                for (let i = 0; i < 6; i++) {
+                    const lane = Math.floor(Math.random() * 3);
+                    const speed = 50 + Math.random() * 100;
+                    
+                    const aiCar = {
+                        id: i,
+                        x: gameState.lanes[lane],
+                        y: -100 - (i * 200),
+                        width: 40,
+                        height: 70,
+                        lane: lane,
+                        speed: speed,
+                        element: null
+                    };
+                    
+                    gameState.aiCars.push(aiCar);
+                    
+                    const carElement = document.createElement('div');
+                    carElement.className = 'car ai-car';
+                    carElement.id = 'aiCar-' + i;
+                    carElement.style.left = (aiCar.x - aiCar.width/2) + 'px';
+                    carElement.style.top = aiCar.y + 'px';
+                    carElement.innerHTML = 'AI ' + (i+1);
+                    road.appendChild(carElement);
+                    
+                    aiCar.element = carElement;
+                }
+            }
+            
+            // Handle keyboard input
+            function handleKeyDown(e) {
+                if (gameState.collision) return;
+                
+                switch(e.key) {
+                    case 'ArrowLeft':
+                        if (gameState.myCar.lane > 0) {
+                            gameState.myCar.lane--;
+                            gameState.myCar.targetX = gameState.lanes[gameState.myCar.lane];
+                        }
+                        break;
+                    case 'ArrowRight':
+                        if (gameState.myCar.lane < 2) {
+                            gameState.myCar.lane++;
+                            gameState.myCar.targetX = gameState.lanes[gameState.myCar.lane];
+                        }
+                        break;
+                    case 'ArrowUp':
+                        gameState.myCar.speed = Math.min(gameState.myCar.speed + gameState.myCar.acceleration, gameState.myCar.maxSpeed);
+                        break;
+                    case 'ArrowDown':
+                        gameState.myCar.speed = Math.max(gameState.myCar.speed - gameState.myCar.deceleration, 0);
+                        break;
+                }
+            }
+            
+            // Toggle debug mode
+            function toggleDebugMode() {
+                gameState.debugMode = !gameState.debugMode;
+                debugBtn.textContent = 'DEBUG: ' + (gameState.debugMode ? 'ON' : 'OFF');
+                debugBtn.classList.toggle('debug-mode', gameState.debugMode);
+                
+                if (gameState.debugMode) {
+                    debugInfoElement.style.display = 'block';
+                } else {
+                    debugInfoElement.style.display = 'none';
+                    // Remove sensor lines
+                    document.querySelectorAll('.sensor-line, .collision-point').forEach(el => el.remove());
+                }
+            }
+            
+            // Toggle autopilot
+            function toggleAutopilot() {
+                gameState.autopilot = !gameState.autopilot;
+                autopilotBtn.textContent = 'AUTOPILOT: ' + (gameState.autopilot ? 'ON' : 'OFF');
+                autopilotBtn.classList.toggle('autopilot-active', gameState.autopilot);
+                
+                if (gameState.autopilot) {
+                    statusElement.textContent = 'AUTOPILOT';
+                    statusElement.style.color = '#2ecc71';
+                } else {
+                    statusElement.textContent = 'NORMAL';
+                    statusElement.style.color = '#ffcc00';
+                }
+            }
+            
+            // Reset the game
+            function resetGame() {
+                gameState.score = 0;
+                gameState.speed = 0;
+                gameState.status = 'NORMAL';
+                gameState.myCar.x = 300;
+                gameState.myCar.y = 400;
+                gameState.myCar.lane = 1;
+                gameState.myCar.speed = 0;
+                gameState.myCar.targetX = 300;
+                gameState.collision = false;
+                
+                scoreElement.textContent = '0';
+                speedElement.textContent = '0 km/h';
+                statusElement.textContent = 'NORMAL';
+                statusElement.style.color = '#ffcc00';
+                
+                // Remove all AI cars
+                gameState.aiCars.forEach(car => {
+                    if (car.element && car.element.parentNode) {
+                        car.element.parentNode.removeChild(car.element);
+                    }
+                });
+                
+                // Remove sensor lines if any
+                document.querySelectorAll('.sensor-line, .collision-point').forEach(el => el.remove());
+                
+                // Generate new AI cars
+                generateAICars();
+            }
+            
+            // Update game state
+            function update() {
+                if (gameState.collision) return;
+                
+                // Update player car position
+                if (gameState.autopilot) {
+                    autopilotControl();
+                } else {
+                    // Smooth movement between lanes
+                    gameState.myCar.x += (gameState.myCar.targetX - gameState.myCar.x) * 0.1;
+                }
+                
+                // Update AI cars
+                updateAICars();
+                
+                // Check collisions
+                checkCollisions();
+                
+                // Update score
+                gameState.score += Math.floor(gameState.myCar.speed / 10);
+                scoreElement.textContent = gameState.score;
+                
+                // Update speed display
+                speedElement.textContent = Math.floor(gameState.myCar.speed) + ' km/h';
+                
+                // Update sensors in debug mode
+                if (gameState.debugMode) {
+                    updateSensors();
+                }
+            }
+            
+            // Autopilot control logic
+            function autopilotControl() {
+                // Simple autopilot logic - in a real implementation, this would be more complex
+                // and use the sensor data and learning data
+                
+                // Follow the current lane
+                gameState.myCar.targetX = gameState.lanes[gameState.myCar.lane];
+                gameState.myCar.x += (gameState.myCar.targetX - gameState.myCar.x) * 0.1;
+                
+                // Adjust speed based on cars ahead
+                let closestCarAhead = null;
+                let minDistance = Infinity;
+                
+                for (const car of gameState.aiCars) {
+                    if (car.y > gameState.myCar.y) {
+                        const distance = car.y - gameState.myCar.y;
+                        if (distance < minDistance && Math.abs(car.x - gameState.myCar.x) < 50) {
+                            minDistance = distance;
+                            closestCarAhead = car;
+                        }
+                    }
+                }
+                
+                if (closestCarAhead && minDistance < 200) {
+                    // Slow down if too close to car ahead
+                    gameState.myCar.speed = Math.max(gameState.myCar.speed - 1, closestCarAhead.speed - 10);
+                    
+                    // Consider changing lanes if too close
+                    if (minDistance < 100) {
+                        if (gameState.myCar.lane === 1) {
+                            // Try to change to left or right lane
+                            if (Math.random() > 0.5 && isLaneClear(0)) {
+                                gameState.myCar.lane = 0;
+                            } else if (isLaneClear(2)) {
+                                gameState.myCar.lane = 2;
+                            }
+                        } else if (gameState.myCar.lane === 0 && isLaneClear(2)) {
+                            gameState.myCar.lane = 2;
+                        } else if (gameState.myCar.lane === 2 && isLaneClear(0)) {
+                            gameState.myCar.lane = 0;
+                        }
+                    }
+                } else {
+                    // No cars ahead, accelerate to comfortable speed
+                    gameState.myCar.speed = Math.min(gameState.myCar.speed + 0.5, 120);
+                }
+            }
+            
+            // Check if a lane is clear of cars
+            function isLaneClear(lane) {
+                for (const car of gameState.aiCars) {
+                    if (car.lane === lane) {
+                        const distance = Math.abs(car.y - gameState.myCar.y);
+                        if (distance < 200) {
+                            return false;
+                        }
+                    }
+                }
+                return true;
+            }
+            
+            // Update AI cars
+            function updateAICars() {
+                for (let i = 0; i < gameState.aiCars.length; i++) {
+                    const car = gameState.aiCars[i];
+                    
+                    // Move AI car
+                    car.y += car.speed / 10;
+                    
+                    // If AI car goes off screen, reset it
+                    if (car.y > gameContainer.offsetHeight + 100) {
+                        car.y = -100;
+                        car.lane = Math.floor(Math.random() * 3);
+                        car.speed = 50 + Math.random() * 100;
+                    }
+                    
+                    // Smoothly move AI car to center of lane
+                    car.x += (gameState.lanes[car.lane] - car.x) * 0.05;
+                    
+                    // Update AI car element position
+                    if (car.element) {
+                        car.element.style.left = (car.x - car.width/2) + 'px';
+                        car.element.style.top = (car.y - car.height/2) + 'px';
+                    }
+                }
+            }
+            
+            // Check for collisions
+            function checkCollisions() {
+                for (const car of gameState.aiCars) {
+                    const dx = Math.abs(gameState.myCar.x - car.x);
+                    const dy = Math.abs(gameState.myCar.y - car.y);
+                    
+                    if (dx < (gameState.myCar.width + car.width) / 2 - 10 && 
+                        dy < (gameState.myCar.height + car.height) / 2 - 10) {
+                        handleCollision();
+                        return;
+                    }
+                }
+            }
+            
+            // Handle collision
+            function handleCollision() {
+                gameState.collision = true;
+                statusElement.textContent = 'TABRAKAN!';
+                statusElement.style.color = '#e74c3c';
+                
+                // Save learning data
+                localStorage.setItem('autopilotLearning', JSON.stringify(gameState.learningData));
+            }
+            
+            // Update sensors for debug mode
+            function updateSensors() {
+                // Remove previous sensor lines
+                document.querySelectorAll('.sensor-line, .collision-point').forEach(el => el.remove());
+                
+                // Simulate sensor data
+                gameState.sensorData = {
+                    front: 200,
+                    frontLeft: 150,
+                    frontRight: 150,
+                    left: 100,
+                    right: 100,
+                    back: 150,
+                    backLeft: 100,
+                    backRight: 100
+                };
+                
+                // Draw sensor lines
+                drawSensorLine(gameState.myCar.x, gameState.myCar.y, gameState.myCar.x, gameState.myCar.y - gameState.sensorData.front, 'front');
+                drawSensorLine(gameState.myCar.x, gameState.myCar.y, gameState.myCar.x - 30, gameState.myCar.y - gameState.sensorData.frontLeft, 'frontLeft');
+                drawSensorLine(gameState.myCar.x, gameState.myCar.y, gameState.myCar.x + 30, gameState.myCar.y - gameState.sensorData.frontRight, 'frontRight');
+                drawSensorLine(gameState.myCar.x, gameState.myCar.y, gameState.myCar.x - 50, gameState.myCar.y, 'left');
+                drawSensorLine(gameState.myCar.x, gameState.myCar.y, gameState.myCar.x + 50, gameState.myCar.y, 'right');
+                drawSensorLine(gameState.myCar.x, gameState.myCar.y, gameState.myCar.x, gameState.myCar.y + gameState.sensorData.back, 'back');
+                drawSensorLine(gameState.myCar.x, gameState.myCar.y, gameState.myCar.x - 30, gameState.myCar.y + gameState.sensorData.backLeft, 'backLeft');
+                drawSensorLine(gameState.myCar.x, gameState.myCar.y, gameState.myCar.x + 30, gameState.myCar.y + gameState.sensorData.backRight, 'backRight');
+                
+                // Update debug info
+                debugInfoElement.innerHTML = `
+                    <strong>Sensor Data:</strong><br>
+                    Front: ${gameState.sensorData.front}<br>
+                    Front Left: ${gameState.sensorData.frontLeft}<br>
+                    Front Right: ${gameState.sensorData.frontRight}<br>
+                    Left: ${gameState.sensorData.left}<br>
+                    Right: ${gameState.sensorData.right}<br>
+                    Back: ${gameState.sensorData.back}<br>
+                    Back Left: ${gameState.sensorData.backLeft}<br>
+                    Back Right: ${gameState.sensorData.backRight}<br>
+                    <br>
+                    <strong>Car Data:</strong><br>
+                    Speed: ${Math.floor(gameState.myCar.speed)} km/h<br>
+                    Lane: ${gameState.myCar.lane + 1}<br>
+                    Position: (${Math.floor(gameState.myCar.x)}, ${Math.floor(gameState.myCar.y)})
+                `;
+            }
+            
+            // Draw sensor line
+            function drawSensorLine(x1, y1, x2, y2, type) {
+                const line = document.createElement('div');
+                line.className = 'sensor-line';
+                
+                const length = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+                const angle = Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI;
+                
+                line.style.width = length + 'px';
+                line.style.height = '2px';
+                line.style.left = x1 + 'px';
+                line.style.top = y1 + 'px';
+                line.style.transform = `rotate(${angle}deg)`;
+                line.style.transformOrigin = '0 0';
+                
+                road.appendChild(line);
+                
+                // Draw collision point
+                const point = document.createElement('div');
+                point.className = 'collision-point';
+                point.style.left = (x2 - 4) + 'px';
+                point.style.top = (y2 - 4) + 'px';
+                
+                road.appendChild(point);
+            }
+            
+            // Render game
+            function render() {
+                // Update player car
+                const myCar = document.getElementById('myCar');
+                if (myCar) {
+                    myCar.style.left = (gameState.myCar.x - gameState.myCar.width/2) + 'px';
+                    myCar.style.top = (gameState.myCar.y - gameState.myCar.height/2) + 'px';
+                    
+                    // Add slight rotation based on movement for realism
+                    const rotation = (gameState.myCar.targetX - gameState.myCar.x) / 10;
+                    myCar.style.transform = `rotate(${rotation}deg)`;
+                }
+            }
+            
+            // Game loop
+            function gameLoop() {
+                update();
+                render();
+                requestAnimationFrame(gameLoop);
+            }
+            
+            // Start the game
+            init();
+        });
+    </script>
+</body>
+</html>
