@@ -2,20 +2,21 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>AI Learning Assistant (Debug)</title>
+  <title>AI Learning Assistant (GPT + Gemini)</title>
   <style>
     body { font-family: Arial, sans-serif; background: #f4f6f9; padding:20px; }
     h1 { text-align: center; }
     .container { max-width: 800px; margin:auto; background:white; padding:20px; border-radius:10px; }
-    textarea { width:100%; padding:10px; margin-bottom:10px; }
-    button { padding:10px 15px; margin-right:5px; cursor:pointer; }
-    .result { margin-top:15px; padding:10px; background:#f9f9f9; border-left:4px solid #007bff; }
+    textarea { width:100%; padding:10px; margin-bottom:10px; font-size:14px; }
+    button { padding:10px 15px; margin:5px 5px 10px 0; cursor:pointer; border:none; border-radius:6px; background:#007bff; color:white; }
+    button:hover { background:#0056b3; }
+    .result { margin-top:15px; padding:10px; background:#f9f9f9; border-left:4px solid #007bff; border-radius:6px; white-space:pre-wrap; }
     .dual { display:flex; gap:10px; flex-wrap:wrap; }
     .dual .result { flex:1; min-width:300px; }
   </style>
 </head>
 <body>
-  <h1>AI Learning Assistant 📚 (Debug Mode)</h1>
+  <h1>AI Learning Assistant 📚</h1>
   <div class="container">
     <textarea id="question" rows="4" placeholder="Tulis pertanyaanmu..."></textarea>
     <br>
@@ -26,8 +27,9 @@
   </div>
 
   <script>
-    const GPT_API_KEY = "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";       // ganti di backend!
-    const GEMINI_API_KEY = "AIzaSyAg1ahiWIFCutnF24YAyxgT_-mRvPM4fMA"; // ganti di backend!
+    // 🚨 Ganti dengan key kamu (sementara, tidak aman di frontend!)
+    const GPT_API_KEY = "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";     
+    const GEMINI_API_KEY = "AIzaSyAg1ahiWIFCutnF24YAyxgT_-mRvPM4fMA";      
 
     async function askAI(model) {
       const question = document.getElementById("question").value.trim();
@@ -58,17 +60,19 @@
       }
     }
 
+    // 🔹 GPT pakai /v1/responses
     async function fetchGPT(prompt) {
       try {
-        const res = await fetch("https://api.openai.com/v1/chat/completions", {
+        const res = await fetch("https://api.openai.com/v1/responses", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             "Authorization": `Bearer ${GPT_API_KEY}`
           },
           body: JSON.stringify({
-            model: "gpt-4o-mini", // kalau error coba ganti "gpt-3.5-turbo"
-            messages: [{ role: "user", content: prompt }]
+            model: "gpt-5-nano",  // bisa ganti model lain: gpt-4.1-mini, gpt-4.1
+            input: prompt,
+            store: false
           })
         });
 
@@ -79,13 +83,14 @@
           return `Error GPT (${res.status}): ${JSON.stringify(data)}`;
         }
 
-        return data.choices?.[0]?.message?.content || "Tidak ada jawaban dari GPT.";
+        return data.output?.[0]?.content?.[0]?.text || "Tidak ada jawaban dari GPT.";
       } catch (e) {
-        console.error("GPT error:", e); // DEBUG
+        console.error("GPT error:", e);
         return "Error GPT: " + e.message;
       }
     }
 
+    // 🔹 Gemini pakai /v1beta/models/...:generateContent
     async function fetchGemini(prompt) {
       try {
         const res = await fetch(
@@ -106,7 +111,7 @@
 
         return data.candidates?.[0]?.content?.parts?.[0]?.text || "Tidak ada jawaban dari Gemini.";
       } catch (e) {
-        console.error("Gemini error:", e); // DEBUG
+        console.error("Gemini error:", e);
         return "Error Gemini: " + e.message;
       }
     }
