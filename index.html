@@ -28,7 +28,7 @@
 
   <script>
     // 🚨 Ganti dengan key kamu (sementara, tidak aman di frontend!)
-    const GPT_API_KEY = "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";     
+    const GPT_API_KEY = "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";     
     const GEMINI_API_KEY = "AIzaSyAg1ahiWIFCutnF24YAyxgT_-mRvPM4fMA";      
 
     async function askAI(model) {
@@ -70,7 +70,7 @@
             "Authorization": `Bearer ${GPT_API_KEY}`
           },
           body: JSON.stringify({
-            model: "gpt-5-nano",  // bisa ganti model lain: gpt-4.1-mini, gpt-4.1
+            model: "gpt-4o-mini",  // bisa ganti model lain: gpt-4.1-mini, gpt-4.1
             input: prompt,
             store: false
           })
