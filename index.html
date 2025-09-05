@@ -2,66 +2,20 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>AI Learning Assistant</title>
+  <title>AI Learning Assistant (Debug)</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f4f6f9;
-      margin: 0;
-      padding: 20px;
-    }
-    h1 {
-      text-align: center;
-      color: #333;
-    }
-    .container {
-      max-width: 800px;
-      margin: auto;
-      background: white;
-      padding: 20px;
-      border-radius: 12px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-    }
-    textarea {
-      width: 100%;
-      padding: 10px;
-      font-size: 14px;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      resize: vertical;
-    }
-    button {
-      margin-top: 10px;
-      padding: 10px 16px;
-      font-size: 14px;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      background: #007bff;
-      color: white;
-    }
-    button:hover { background: #0056b3; }
-    .result {
-      margin-top: 20px;
-      padding: 15px;
-      background: #f9f9f9;
-      border-left: 4px solid #007bff;
-      border-radius: 6px;
-      white-space: pre-wrap;
-    }
-    .dual {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-    .dual .result {
-      flex: 1;
-      min-width: 300px;
-    }
+    body { font-family: Arial, sans-serif; background: #f4f6f9; padding:20px; }
+    h1 { text-align: center; }
+    .container { max-width: 800px; margin:auto; background:white; padding:20px; border-radius:10px; }
+    textarea { width:100%; padding:10px; margin-bottom:10px; }
+    button { padding:10px 15px; margin-right:5px; cursor:pointer; }
+    .result { margin-top:15px; padding:10px; background:#f9f9f9; border-left:4px solid #007bff; }
+    .dual { display:flex; gap:10px; flex-wrap:wrap; }
+    .dual .result { flex:1; min-width:300px; }
   </style>
 </head>
 <body>
-  <h1>AI Learning Assistant 📚</h1>
+  <h1>AI Learning Assistant 📚 (Debug Mode)</h1>
   <div class="container">
     <textarea id="question" rows="4" placeholder="Tulis pertanyaanmu..."></textarea>
     <br>
@@ -113,13 +67,21 @@
             "Authorization": `Bearer ${GPT_API_KEY}`
           },
           body: JSON.stringify({
-            model: "gpt-4o-mini",
+            model: "gpt-4o-mini", // kalau error coba ganti "gpt-3.5-turbo"
             messages: [{ role: "user", content: prompt }]
           })
         });
+
         const data = await res.json();
-        return data.choices?.[0]?.message?.content || "Tidak ada jawaban.";
+        console.log("GPT raw response:", data); // DEBUG
+
+        if (!res.ok) {
+          return `Error GPT (${res.status}): ${JSON.stringify(data)}`;
+        }
+
+        return data.choices?.[0]?.message?.content || "Tidak ada jawaban dari GPT.";
       } catch (e) {
+        console.error("GPT error:", e); // DEBUG
         return "Error GPT: " + e.message;
       }
     }
@@ -134,9 +96,17 @@
             body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
           }
         );
+
         const data = await res.json();
-        return data.candidates?.[0]?.content?.parts?.[0]?.text || "Tidak ada jawaban.";
+        console.log("Gemini raw response:", data); // DEBUG
+
+        if (!res.ok) {
+          return `Error Gemini (${res.status}): ${JSON.stringify(data)}`;
+        }
+
+        return data.candidates?.[0]?.content?.parts?.[0]?.text || "Tidak ada jawaban dari Gemini.";
       } catch (e) {
+        console.error("Gemini error:", e); // DEBUG
         return "Error Gemini: " + e.message;
       }
     }
