@@ -28,7 +28,7 @@
 
   <script>
     // 🚨 Ganti dengan key kamu (sementara, tidak aman di frontend!)
-    const GPT_API_KEY = "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";     
+    const GPT_API_KEY = "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";     
     const GEMINI_API_KEY = "AIzaSyAg1ahiWIFCutnF24YAyxgT_-mRvPM4fMA";      
 
     async function askAI(model) {
@@ -67,7 +67,7 @@
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "Authorization": `Bearer ${GPT_API_KEY}`
+            "Authorization": `Bearer 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`
           },
           body: JSON.stringify({
             model: "gpt-4o-mini",  // bisa ganti model lain: gpt-4.1-mini, gpt-4.1
