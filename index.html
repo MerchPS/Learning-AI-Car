@@ -2,15 +2,14 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>AI Learning Assistant (GPT + Gemini)</title>
+  <title>AI Learning Assistant (GPT-4o-nano + Gemini)</title>
   <style>
     body { font-family: Arial, sans-serif; background: #f4f6f9; padding:20px; }
     h1 { text-align: center; }
     .container { max-width: 800px; margin:auto; background:white; padding:20px; border-radius:10px; }
-    textarea { width:100%; padding:10px; margin-bottom:10px; font-size:14px; }
-    button { padding:10px 15px; margin:5px 5px 10px 0; cursor:pointer; border:none; border-radius:6px; background:#007bff; color:white; }
-    button:hover { background:#0056b3; }
-    .result { margin-top:15px; padding:10px; background:#f9f9f9; border-left:4px solid #007bff; border-radius:6px; white-space:pre-wrap; }
+    textarea { width:100%; padding:10px; margin-bottom:10px; }
+    button { padding:10px 15px; margin-right:5px; cursor:pointer; }
+    .result { margin-top:15px; padding:10px; background:#f9f9f9; border-left:4px solid #007bff; white-space:pre-wrap; }
     .dual { display:flex; gap:10px; flex-wrap:wrap; }
     .dual .result { flex:1; min-width:300px; }
   </style>
@@ -20,16 +19,16 @@
   <div class="container">
     <textarea id="question" rows="4" placeholder="Tulis pertanyaanmu..."></textarea>
     <br>
-    <button onclick="askAI('gpt')">Tanya GPT</button>
+    <button onclick="askAI('gpt')">Tanya GPT-4o-nano</button>
     <button onclick="askAI('gemini')">Tanya Gemini</button>
     <button onclick="askAI('both')">Bandingkan Keduanya</button>
     <div id="answers"></div>
   </div>
 
   <script>
-    // 🚨 Ganti dengan key kamu (sementara, tidak aman di frontend!)
-    const GPT_API_KEY = "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";     
-    const GEMINI_API_KEY = "AIzaSyAg1ahiWIFCutnF24YAyxgT_-mRvPM4fMA";      
+    // ⚠️ Ganti dengan API key milikmu
+    const GPT_API_KEY = "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"; 
+    const GEMINI_API_KEY = "AIzaSyAg1ahiWIFCutnF24YAyxgT_-mRvPM4fMA"; 
 
     async function askAI(model) {
       const question = document.getElementById("question").value.trim();
@@ -40,7 +39,7 @@
       if (model === "gpt") {
         const gpt = await fetchGPT(question);
         document.getElementById("answers").innerHTML =
-          `<div class='result'><b>GPT:</b><br>${gpt}</div>`;
+          `<div class='result'><b>GPT-4o-nano:</b><br>${gpt}</div>`;
       }
       else if (model === "gemini") {
         const gemini = await fetchGemini(question);
@@ -53,24 +52,23 @@
         ]);
         document.getElementById("answers").innerHTML = `
           <div class="dual">
-            <div class="result"><b>GPT:</b><br>${gpt}</div>
+            <div class="result"><b>GPT-4o-nano:</b><br>${gpt}</div>
             <div class="result"><b>Gemini:</b><br>${gemini}</div>
           </div>
         `;
       }
     }
 
-    // 🔹 GPT pakai /v1/responses
     async function fetchGPT(prompt) {
       try {
         const res = await fetch("https://api.openai.com/v1/responses", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "Authorization": `Bearer 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`
+            "Authorization": `Bearer ${GPT_API_KEY}`
           },
           body: JSON.stringify({
-            model: "gpt-4o-mini",  // bisa ganti model lain: gpt-4.1-mini, gpt-4.1
+            model: "gpt-4o-nano",
             input: prompt,
             store: false
           })
@@ -90,7 +88,6 @@
       }
     }
 
-    // 🔹 Gemini pakai /v1beta/models/...:generateContent
     async function fetchGemini(prompt) {
       try {
         const res = await fetch(
